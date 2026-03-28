@@ -1,0 +1,57 @@
+{
+  "name": "Grove Lite",
+  "source": "llm-extracted",
+  "workStreams": {
+    "ws-1a": {
+      "id": "ws-1a",
+      "name": "Shared Types & Constants",
+      "phase": 1,
+      "dependencies": [],
+      "brief": "Set up the shared TypeScript types and constants used across the extension and dashboard.",
+      "filesToCreate": [
+        "extension/lib/types.ts",
+        "extension/lib/constants.ts"
+      ],
+      "doneWhen": "Types compile, constants are importable, and no circular imports exist.",
+      "status": "pending"
+    },
+    "ws-2a": {
+      "id": "ws-2a",
+      "name": "Plan Parser",
+      "phase": 2,
+      "dependencies": ["ws-1a"],
+      "brief": "Build the plan parser that converts markdown plans into structured JSON.",
+      "filesToCreate": [
+        "extension/parser/plan.ts",
+        "extension/parser/prompt.ts"
+      ],
+      "doneWhen": "Parser extracts work streams, dependencies, and time slots from markdown. Validation rejects invalid plans.",
+      "status": "pending"
+    },
+    "ws-2b": {
+      "id": "ws-2b",
+      "name": "Agent Dispatcher",
+      "phase": 2,
+      "dependencies": ["ws-1a"],
+      "brief": "Build the agent dispatcher that launches and monitors agents per work stream.",
+      "filesToCreate": [
+        "extension/orchestrator/dispatch.ts",
+        "extension/orchestrator/monitor.ts"
+      ],
+      "doneWhen": "Dispatcher can launch a mock agent, track its status, and report completion.",
+      "status": "pending"
+    }
+  },
+  "timeSlots": [
+    {
+      "slot": 1,
+      "workStreamIds": ["ws-1a"],
+      "maxParallelAgents": 1
+    },
+    {
+      "slot": 2,
+      "workStreamIds": ["ws-2a", "ws-2b"],
+      "maxParallelAgents": 2
+    }
+  ]
+}
