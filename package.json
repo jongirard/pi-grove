@@ -1,0 +1,13 @@
+{
+  "name": "pi-grove",
+  "private": true,
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./extension/index.ts"]
+  },
+  "workspaces": ["extension", "dashboard"],
+  "scripts": {
+    "build": "cd dashboard && bun run build",
+    "typecheck": "bunx tsc --noEmit -p extension/tsconfig.json && bunx tsc --noEmit -p dashboard/tsconfig.json"
+  }
+}

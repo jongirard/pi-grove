@@ -1,0 +1,31 @@
+{
+  "name": "grove-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-agent-core": "*",
+    "@mariozechner/pi-ai": "*",
+    "@mariozechner/pi-tui": "*",
+    "@sinclair/typebox": "*"
+  },
+  "dependencies": {
+    "xstate": "^5",
+    "hono": "latest",
+    "@hono/node-ws": "latest",
+    "open": "latest"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "latest",
+    "@mariozechner/pi-agent-core": "latest",
+    "@mariozechner/pi-ai": "latest",
+    "@sinclair/typebox": "latest",
+    "typescript": "latest",
+    "@types/node": "latest",
+    "vitest": "latest"
+  }
+}
