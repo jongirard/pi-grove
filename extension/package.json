@@ -14,10 +14,11 @@
     "@sinclair/typebox": "*"
   },
   "dependencies": {
-    "xstate": "^5",
-    "hono": "latest",
+    "@hono/node-server": "^1.19.11",
     "@hono/node-ws": "latest",
-    "open": "latest"
+    "hono": "latest",
+    "open": "latest",
+    "xstate": "^5.29.0"
   },
   "devDependencies": {
     "@mariozechner/pi-coding-agent": "latest",

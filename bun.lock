@@ -26,10 +26,11 @@
       "name": "grove-extension",
       "version": "0.1.0",
       "dependencies": {
+        "@hono/node-server": "^1.19.11",
         "@hono/node-ws": "latest",
         "hono": "latest",
         "open": "latest",
-        "xstate": "^5",
+        "xstate": "^5.29.0",
       },
       "devDependencies": {
         "@mariozechner/pi-agent-core": "latest",
