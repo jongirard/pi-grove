@@ -16,8 +16,8 @@ export class GroveGitManager {
 
       await git.stageAll(this.projectRoot);
       const title = planName
-        ? `grove(${workStream.id}): ${planName} — ${workStream.name}, Phase ${workStream.phase}`
-        : `grove(${workStream.id}): ${workStream.name} — complete`;
+        ? `${planName} — ${workStream.name}, Phase ${workStream.phase}`
+        : `${workStream.name} — complete`;
       const message = workStream.brief
         ? `${title}\n\n${workStream.brief}`
         : title;

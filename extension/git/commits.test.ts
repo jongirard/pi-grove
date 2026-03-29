@@ -55,7 +55,7 @@ describe("GroveGitManager", () => {
 
       expect(mockGit.commit).toHaveBeenCalledWith(
         "/test/project",
-        "grove(2A): ADR-003: Capture Pipeline — Shared Types, Phase 1\n\nCreate shared type definitions",
+        "ADR-003: Capture Pipeline — Shared Types, Phase 1\n\nCreate shared type definitions",
       );
     });
 
@@ -69,7 +69,7 @@ describe("GroveGitManager", () => {
 
       expect(mockGit.commit).toHaveBeenCalledWith(
         "/test/project",
-        "grove(2A): Shared Types — complete\n\nCreate shared type definitions",
+        "Shared Types — complete\n\nCreate shared type definitions",
       );
     });
 
