@@ -55,7 +55,9 @@ export async function startServer(
     WS_PATH,
     upgradeWebSocket(() => ({
       onOpen(_evt, ws) {
-        broadcaster.handleConnection(ws);
+        // Defer initial sync so the WebSocket connection fully settles
+        // before sending messages — avoids dropped messages in onOpen.
+        setTimeout(() => broadcaster.handleConnection(ws), 50);
       },
       onMessage(evt, ws) {
         const data =

@@ -24,24 +24,56 @@ export function App() {
     lastEvent,
   );
 
-  // Fallback: fetch plan via REST API if WebSocket hasn't delivered it
+  // Fetch plan + state via REST on mount — same source of truth as /grove status.
+  // WebSocket also delivers plan_loaded on connect, but REST is the primary path.
   useEffect(() => {
     if (isDemoMode || plan) return;
-    const timer = setTimeout(async () => {
+    let cancelled = false;
+
+    async function fetchInitialState() {
       try {
-        const res = await fetch("/api/plan");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data) {
-          const syntheticEvent: GroveEvent = { type: "plan_loaded", plan: data };
-          ws.injectEvent(syntheticEvent);
+        const [planRes, stateRes] = await Promise.all([
+          fetch("/api/plan"),
+          fetch("/api/state"),
+        ]);
+        if (cancelled || !planRes.ok) return false;
+        const planData = await planRes.json();
+        if (!planData || cancelled) return false;
+
+        ws.injectEvent({ type: "plan_loaded", plan: planData });
+
+        if (stateRes.ok) {
+          const stateData = await stateRes.json();
+          for (const [wsId, wsState] of Object.entries(stateData) as [string, any][]) {
+            if (wsState.metrics) {
+              ws.injectEvent({
+                type: "metrics_update",
+                workStreamId: wsId,
+                metrics: wsState.metrics,
+              });
+            }
+          }
         }
+        return true;
       } catch {
-        // Ignore fetch errors
+        return false;
       }
+    }
+
+    // Retry until plan loads — matches /grove status reliability
+    let attempt = 0;
+    const id = setInterval(async () => {
+      if (cancelled) return;
+      attempt++;
+      const ok = await fetchInitialState();
+      if (ok || attempt >= 10) clearInterval(id);
     }, 500);
-    return () => clearTimeout(timer);
-  }, [plan, isDemoMode, ws.injectEvent]);
+
+    // Also try immediately
+    fetchInitialState().then((ok) => { if (ok) clearInterval(id); });
+
+    return () => { cancelled = true; clearInterval(id); };
+  }, [isDemoMode, plan, ws.injectEvent]);
 
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
   const [branchMode, setBranchMode] = useState(false);

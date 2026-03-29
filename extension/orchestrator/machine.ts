@@ -153,6 +153,7 @@ function actorStateName(actor: WorkStreamActor): string {
 export function createOrchestrator(
   plan: GrovePlan,
   listener?: OrchestratorListener,
+  savedState?: OrchestratorSnapshot,
 ): Orchestrator {
   const actors = new Map<string, WorkStreamActor>();
   const listeners = new Set<OrchestratorListener>();
@@ -183,12 +184,38 @@ export function createOrchestrator(
     }
   }
 
+  // Build a persisted snapshot template once for state restoration
+  function buildRestoredSnapshot(
+    ws: WorkStream,
+    saved: { state: string; context: WorkStreamContext },
+  ) {
+    const tmpActor = createActor(workStreamMachine, {
+      input: { workStream: ws },
+    });
+    tmpActor.start();
+    const persisted = tmpActor.getPersistedSnapshot() as any;
+    tmpActor.stop();
+
+    persisted.value = saved.state;
+    persisted.status = saved.state === "done" ? "done" : "active";
+    persisted.context = saved.context;
+    return persisted;
+  }
+
   // Create and wire up an actor per work stream
   for (const [id, ws] of Object.entries(plan.workStreams)) {
-    const actor = createActor(workStreamMachine, {
+    const saved = savedState?.workStreams[id];
+    const actorOptions: any = {
       input: { workStream: ws },
       id: `ws-${id}`,
-    });
+    };
+
+    // Restore from saved state if available
+    if (saved) {
+      actorOptions.snapshot = buildRestoredSnapshot(ws, saved);
+    }
+
+    const actor = createActor(workStreamMachine, actorOptions);
 
     actor.subscribe((snapshot) => {
       const stateName = typeof snapshot.value === "string"
@@ -215,10 +242,11 @@ export function createOrchestrator(
   }
 
   // Auto-fire DEPENDENCIES_MET for work streams with no dependencies
+  // (already-restored actors in ready/done states will ignore this)
   for (const [id, ws] of Object.entries(plan.workStreams)) {
     if (ws.dependencies.length === 0) {
       const actor = actors.get(id);
-      if (actor) {
+      if (actor && actorStateName(actor) === "pending") {
         actor.send({ type: "DEPENDENCIES_MET" });
       }
     }

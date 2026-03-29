@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { readPlan } from "../parser/plan.js";
 import {
   createOrchestrator,
+  type OrchestratorSnapshot,
 } from "../orchestrator/machine.js";
 import { saveState, loadState } from "../orchestrator/persistence.js";
 import { AgentSpawner } from "../orchestrator/spawner.js";
@@ -42,7 +43,8 @@ export async function groveCanopy(
   }
 
   // Create orchestrator and restore saved state
-  const orchestrator = createOrchestrator(plan);
+  const savedState = loadState(groveDir) as OrchestratorSnapshot | null;
+  const orchestrator = createOrchestrator(plan, undefined, savedState ?? undefined);
 
   // Create git manager
   const gitManager = new GroveGitManager(ctx.cwd);
@@ -52,10 +54,8 @@ export async function groveCanopy(
 
   // Build StateProvider with full command handling
   const stateProvider: StateProvider = {
-    getPlan: () => readPlan(groveDir),
+    getPlan: () => plan,
     getState: () => {
-      const currentPlan = readPlan(groveDir);
-      if (!currentPlan) return {};
       const snap = orchestrator.getSnapshot();
       const result: Record<string, { status: WorkStreamStatus; metrics: AgentMetrics }> = {};
       for (const [id, ws] of Object.entries(snap.workStreams)) {

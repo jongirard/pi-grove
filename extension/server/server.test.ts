@@ -245,11 +245,14 @@ describe("GroveBroadcaster", () => {
     const broadcaster = new GroveBroadcaster(provider, () => {});
     broadcaster.handleConnection(ws);
 
-    // Should have received plan_loaded, state_change, and metrics_update
+    // Should have received plan_loaded (with merged statuses) and metrics_update
     const parsed = msgs.map((m) => JSON.parse(m));
     expect(parsed.some((e: any) => e.type === "plan_loaded")).toBe(true);
-    expect(parsed.some((e: any) => e.type === "state_change")).toBe(true);
     expect(parsed.some((e: any) => e.type === "metrics_update")).toBe(true);
+
+    // Verify plan_loaded has merged orchestrator status
+    const planEvent = parsed.find((e: any) => e.type === "plan_loaded");
+    expect(planEvent.plan.workStreams.ws1.status).toBe("running");
   });
 
   it("routes incoming messages to command handler", () => {

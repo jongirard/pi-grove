@@ -107,6 +107,9 @@ export class AgentSpawner {
       workStream.id,
       (_summary: string) => {
         this.orchestrator.send(workStream.id, { type: "AGENT_COMPLETE" });
+        // Stop the event bridge (clears the metrics timer so elapsedMs freezes)
+        const agent = this.agents.get(workStream.id);
+        if (agent) agent.unsubscribe();
       },
     );
 

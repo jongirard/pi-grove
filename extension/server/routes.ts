@@ -12,7 +12,26 @@ export function createRoutes(stateProvider: StateProvider): Hono {
    */
   api.get("/api/plan", (c) => {
     const plan = stateProvider.getPlan();
-    return c.json(plan ?? null);
+    if (!plan) return c.json(null);
+
+    // Merge current orchestrator statuses into the plan so the dashboard
+    // never sees stale "pending" values from the on-disk plan.json.
+    try {
+      const state = stateProvider.getState();
+      const mergedWorkStreams = { ...plan.workStreams };
+      for (const [wsId, wsState] of Object.entries(state)) {
+        if (mergedWorkStreams[wsId]) {
+          mergedWorkStreams[wsId] = {
+            ...mergedWorkStreams[wsId],
+            status: wsState.status,
+          };
+        }
+      }
+      return c.json({ ...plan, workStreams: mergedWorkStreams });
+    } catch {
+      // Fall back to raw plan if state merge fails
+      return c.json(plan);
+    }
   });
 
   /**

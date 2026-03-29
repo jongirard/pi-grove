@@ -27,29 +27,44 @@ export class GroveBroadcaster {
   handleConnection(ws: WSContext): void {
     this.clients.add(ws);
 
-    // Send current plan if available
     const plan = this.stateProvider.getPlan();
-    if (plan) {
-      const initEvent: GroveEvent = { type: "plan_loaded", plan };
-      ws.send(JSON.stringify(initEvent));
+    if (!plan) return;
+
+    // Merge orchestrator state into the plan so the dashboard never
+    // flashes stale "pending" statuses.  Wrapped in try/catch so a
+    // state-provider error can't prevent the plan from being delivered.
+    let state: Record<string, { status: any; metrics: any }> = {};
+    try {
+      state = this.stateProvider.getState();
+    } catch {
+      // Fall through — plan will be sent with on-disk statuses
     }
 
-    // Send current state for each work stream
-    const state = this.stateProvider.getState();
+    const mergedWorkStreams = { ...plan.workStreams };
     for (const [wsId, wsState] of Object.entries(state)) {
-      const stateEvent: GroveEvent = {
-        type: "state_change",
-        workStreamId: wsId,
-        status: wsState.status,
-      };
-      ws.send(JSON.stringify(stateEvent));
+      if (mergedWorkStreams[wsId]) {
+        mergedWorkStreams[wsId] = {
+          ...mergedWorkStreams[wsId],
+          status: wsState.status,
+        };
+      }
+    }
+    const initEvent: GroveEvent = {
+      type: "plan_loaded",
+      plan: { ...plan, workStreams: mergedWorkStreams },
+    };
+    ws.send(JSON.stringify(initEvent));
 
-      const metricsEvent: GroveEvent = {
-        type: "metrics_update",
-        workStreamId: wsId,
-        metrics: wsState.metrics,
-      };
-      ws.send(JSON.stringify(metricsEvent));
+    // Send current metrics for each work stream
+    for (const [wsId, wsState] of Object.entries(state)) {
+      if (wsState.metrics) {
+        const metricsEvent: GroveEvent = {
+          type: "metrics_update",
+          workStreamId: wsId,
+          metrics: wsState.metrics,
+        };
+        ws.send(JSON.stringify(metricsEvent));
+      }
     }
 
     // Send slot_ready for phases that are ready to be planted.

@@ -4,6 +4,7 @@ import { readPlan } from "../parser/plan.js";
 import {
   createOrchestrator,
   type Orchestrator,
+  type OrchestratorSnapshot,
 } from "../orchestrator/machine.js";
 import { saveState, loadState } from "../orchestrator/persistence.js";
 import { AgentSpawner } from "../orchestrator/spawner.js";
@@ -34,8 +35,9 @@ export async function grovePlant(
     return;
   }
 
-  // 2. Create orchestrator
-  const orchestrator = createOrchestrator(plan);
+  // 2. Create orchestrator (restore saved state if available)
+  const savedState = loadState(groveDir) as OrchestratorSnapshot | null;
+  const orchestrator = createOrchestrator(plan, undefined, savedState ?? undefined);
 
   // 3. Create git manager
   const gitManager = new GroveGitManager(ctx.cwd);

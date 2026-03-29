@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import type {
   GrovePlan,
   WorkStream,
@@ -31,73 +31,93 @@ const emptyMetrics = (workStreamId: string): AgentMetrics => ({
   currentFile: null,
 });
 
+/**
+ * Derive plan state by processing the full events array on every render.
+ * This avoids the race condition where `lastEvent` is overwritten before
+ * a useEffect can process it, which caused plan_loaded events to be lost.
+ */
 export function usePlanState(
   events: GroveEvent[],
-  lastEvent: GroveEvent | null,
+  _lastEvent: GroveEvent | null,
 ): PlanState {
-  const [plan, setPlan] = useState<GrovePlan | null>(null);
-  const [workStreams, setWorkStreams] = useState<
-    Record<string, WorkStreamWithMetrics>
-  >({});
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  // Track the last processed index so we only process new events
+  const processedRef = useRef(0);
+  const stateRef = useRef<{
+    plan: GrovePlan | null;
+    workStreams: Record<string, WorkStreamWithMetrics>;
+    timeSlots: TimeSlot[];
+  }>({ plan: null, workStreams: {}, timeSlots: [] });
 
-  // Process new events when lastEvent changes
-  useEffect(() => {
-    if (!lastEvent) return;
+  // Process any new events since last render
+  if (events.length > processedRef.current) {
+    let { plan, workStreams, timeSlots } = stateRef.current;
 
-    switch (lastEvent.type) {
-      case "plan_loaded": {
-        const loadedPlan = lastEvent.plan;
-        setPlan(loadedPlan);
-        setTimeSlots(loadedPlan.timeSlots);
+    for (let i = processedRef.current; i < events.length; i++) {
+      const event = events[i];
 
-        const wsMap: Record<string, WorkStreamWithMetrics> = {};
-        for (const [id, ws] of Object.entries(loadedPlan.workStreams)) {
-          wsMap[id] = { ...ws, metrics: emptyMetrics(id) };
+      switch (event.type) {
+        case "plan_loaded": {
+          plan = event.plan;
+          timeSlots = event.plan.timeSlots;
+          const wsMap: Record<string, WorkStreamWithMetrics> = {};
+          for (const [id, ws] of Object.entries(event.plan.workStreams)) {
+            const existingMetrics = workStreams[id]?.metrics;
+            wsMap[id] = {
+              ...ws,
+              metrics: existingMetrics ?? emptyMetrics(id),
+            };
+          }
+          workStreams = wsMap;
+          break;
         }
-        setWorkStreams(wsMap);
-        break;
-      }
 
-      case "state_change": {
-        setWorkStreams((prev) => {
-          const existing = prev[lastEvent.workStreamId];
-          if (!existing) return prev;
-          return {
-            ...prev,
-            [lastEvent.workStreamId]: {
-              ...existing,
-              status: lastEvent.status,
-            },
-          };
-        });
-        break;
-      }
+        case "state_change": {
+          const existing = workStreams[event.workStreamId];
+          if (existing) {
+            workStreams = {
+              ...workStreams,
+              [event.workStreamId]: {
+                ...existing,
+                status: event.status,
+              },
+            };
+          }
+          break;
+        }
 
-      case "metrics_update": {
-        setWorkStreams((prev) => {
-          const existing = prev[lastEvent.workStreamId];
-          if (!existing) return prev;
-          return {
-            ...prev,
-            [lastEvent.workStreamId]: {
-              ...existing,
-              metrics: lastEvent.metrics,
-            },
-          };
-        });
-        break;
+        case "metrics_update": {
+          const existing = workStreams[event.workStreamId];
+          if (existing) {
+            workStreams = {
+              ...workStreams,
+              [event.workStreamId]: {
+                ...existing,
+                metrics: event.metrics,
+              },
+            };
+          }
+          break;
+        }
       }
     }
-  }, [lastEvent]);
 
-  const aggregateMetrics = Object.values(workStreams).reduce(
-    (acc, ws) => ({
-      totalCost: acc.totalCost + ws.metrics.estimatedCost,
-      totalTokens: acc.totalTokens + ws.metrics.tokensUsed,
-      totalToolCalls: acc.totalToolCalls + ws.metrics.toolCalls,
-    }),
-    { totalCost: 0, totalTokens: 0, totalToolCalls: 0 },
+    processedRef.current = events.length;
+    stateRef.current = { plan, workStreams, timeSlots };
+  }
+
+  const { plan, workStreams, timeSlots } = stateRef.current;
+
+  const aggregateMetrics = useMemo(
+    () =>
+      Object.values(workStreams).reduce(
+        (acc, ws) => ({
+          totalCost: acc.totalCost + ws.metrics.estimatedCost,
+          totalTokens: acc.totalTokens + ws.metrics.tokensUsed,
+          totalToolCalls: acc.totalToolCalls + ws.metrics.toolCalls,
+        }),
+        { totalCost: 0, totalTokens: 0, totalToolCalls: 0 },
+      ),
+    [workStreams],
   );
 
   return { plan, workStreams, timeSlots, aggregateMetrics };

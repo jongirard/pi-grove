@@ -280,4 +280,53 @@ describe("persistence", () => {
 
     orch.dispose();
   });
+
+  it("restores orchestrator from saved state", () => {
+    const plan = makePlan({
+      a: makeWorkStream({ id: "a", dependencies: [] }),
+      b: makeWorkStream({ id: "b", dependencies: ["a"] }),
+    });
+
+    // Run first orchestrator to completion of "a"
+    const orch1 = createOrchestrator(plan);
+    orch1.send("a", { type: "PLANT" });
+    orch1.send("a", { type: "AGENT_COMPLETE" });
+
+    const snapshot = orch1.getSnapshot();
+    expect(snapshot.workStreams.a.state).toBe("done");
+    expect(snapshot.workStreams.b.state).toBe("ready");
+    saveState(tmpDir, snapshot);
+    orch1.dispose();
+
+    // Create a new orchestrator with saved state
+    const saved = loadState(tmpDir) as typeof snapshot;
+    const orch2 = createOrchestrator(plan, undefined, saved);
+
+    const snap2 = orch2.getSnapshot();
+    expect(snap2.workStreams.a.state).toBe("done");
+    expect(snap2.workStreams.b.state).toBe("ready");
+    orch2.dispose();
+  });
+
+  it("restores metrics from saved state", () => {
+    const plan = makePlan({
+      a: makeWorkStream({ id: "a", dependencies: [] }),
+    });
+
+    const orch1 = createOrchestrator(plan);
+    orch1.send("a", { type: "PLANT" });
+    orch1.send("a", { type: "METRICS_UPDATE", metrics: { tokensUsed: 5000, elapsedMs: 120000 } });
+
+    const snapshot = orch1.getSnapshot();
+    saveState(tmpDir, snapshot);
+    orch1.dispose();
+
+    const saved = loadState(tmpDir) as typeof snapshot;
+    const orch2 = createOrchestrator(plan, undefined, saved);
+
+    const metrics = orch2.getSnapshot().workStreams.a.context.metrics;
+    expect(metrics.tokensUsed).toBe(5000);
+    expect(metrics.elapsedMs).toBe(120000);
+    orch2.dispose();
+  });
 });
