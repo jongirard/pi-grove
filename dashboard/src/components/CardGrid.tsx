@@ -7,6 +7,7 @@ import { TerminalView } from "./TerminalView.js";
 import { SteeringInput } from "./SteeringInput.js";
 import { PlantPrompt } from "./PlantPrompt.js";
 import { PhaseConnector } from "./PhaseConnector.js";
+import { PendingPhaseNotice } from "./PendingPhaseNotice.js";
 
 interface CardGridProps {
   workStreams: Record<string, WorkStream & { metrics: AgentMetrics }>;
@@ -146,9 +147,11 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand, selected
           return s === "pending" || s === "ready";
         });
         const showPlantPrompt = isReady && allPendingOrReady;
+        const showPendingNotice = !isReady && allPendingOrReady;
 
-        // Find the next phase (if any)
+        // Find the previous/next phase (if any)
         const currentGroupIdx = groups.findIndex((g) => g.slot.slot === slotNum);
+        const prevGroup = groups[currentGroupIdx - 1];
         const nextGroup = groups[currentGroupIdx + 1];
 
         // Current phase is "complete" when all its streams are done
@@ -173,6 +176,12 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand, selected
                   workStreams={workStreams}
                   onPlant={handlePlant}
                 />
+              </div>
+            )}
+
+            {showPendingNotice && prevGroup && (
+              <div className="mb-3">
+                <PendingPhaseNotice previousPhase={prevGroup.slot.slot} />
               </div>
             )}
 
