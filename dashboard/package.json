@@ -6,19 +6,24 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "react": "latest",
     "react-dom": "latest"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "latest",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "jsdom": "^29.0.1",
+    "tailwindcss": "latest",
     "typescript": "latest",
     "vite": "latest",
-    "@vitejs/plugin-react": "latest",
-    "@tailwindcss/vite": "latest",
-    "tailwindcss": "latest"
+    "vitest": "^4.1.2"
   }
 }

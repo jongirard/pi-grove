@@ -1,0 +1,40 @@
+{
+  "name": "Test Plan",
+  "source": "llm",
+  "workStreams": {
+    "1A": {
+      "id": "1A",
+      "name": "Setup",
+      "phase": 1,
+      "dependencies": [],
+      "brief": "Set up initial files.",
+      "filesToCreate": ["src/setup.ts"],
+      "doneWhen": "Setup file exists and compiles.",
+      "status": "pending"
+    },
+    "2A": {
+      "id": "2A",
+      "name": "Feature Alpha",
+      "phase": 2,
+      "dependencies": ["1A"],
+      "brief": "Build the first feature.",
+      "filesToCreate": ["src/alpha.ts"],
+      "doneWhen": "Alpha feature works end-to-end.",
+      "status": "pending"
+    },
+    "2B": {
+      "id": "2B",
+      "name": "Feature Beta",
+      "phase": 2,
+      "dependencies": ["1A"],
+      "brief": "Build the second feature.",
+      "filesToCreate": ["src/beta.ts"],
+      "doneWhen": "Beta feature works end-to-end.",
+      "status": "pending"
+    }
+  },
+  "timeSlots": [
+    { "slot": 1, "workStreamIds": ["1A"], "maxParallelAgents": 1 },
+    { "slot": 2, "workStreamIds": ["2A", "2B"], "maxParallelAgents": 2 }
+  ]
+}
