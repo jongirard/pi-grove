@@ -82,7 +82,6 @@ function AgentCardWithDetails({
       <div className="space-y-3">
         <StepTimeline
           filesToCreate={workStream.filesToCreate}
-          doneWhen={workStream.doneWhen}
           events={toolEvents}
         />
         <SteeringInput

@@ -9,7 +9,6 @@ interface Step {
 
 interface StepTimelineProps {
   filesToCreate: string[];
-  doneWhen: string;
   events: AgentToolEvent[];
 }
 
@@ -36,12 +35,11 @@ function pathMatches(eventPath: string, stepPath: string): boolean {
 
 function deriveSteps(
   filesToCreate: string[],
-  doneWhen: string,
   events: AgentToolEvent[],
 ): Step[] {
   const mutationTools = new Set(["write", "edit", "Write", "Edit"]);
 
-  const steps: Step[] = filesToCreate.map((fp) => {
+  return filesToCreate.map((fp) => {
     const basename = fp.split("/").pop() ?? fp;
 
     // Check for completed write/edit events referencing this file
@@ -68,16 +66,6 @@ function deriveSteps(
 
     return { name: basename, filePath: fp, status: "pending" as const };
   });
-
-  // Verification step: complete if all file steps are complete
-  const allFilesComplete = steps.every((s) => s.status === "complete");
-  steps.push({
-    name: "Verification",
-    filePath: "",
-    status: allFilesComplete ? "in_progress" : "pending",
-  });
-
-  return steps;
 }
 
 const statusIcon: Record<Step["status"], { char: string; classes: string }> = {
@@ -86,10 +74,10 @@ const statusIcon: Record<Step["status"], { char: string; classes: string }> = {
   pending: { char: "\u25CB", classes: "text-neutral-600" },
 };
 
-export function StepTimeline({ filesToCreate, doneWhen, events }: StepTimelineProps) {
+export function StepTimeline({ filesToCreate, events }: StepTimelineProps) {
   const steps = useMemo(
-    () => deriveSteps(filesToCreate, doneWhen, events),
-    [filesToCreate, doneWhen, events],
+    () => deriveSteps(filesToCreate, events),
+    [filesToCreate, events],
   );
 
   return (
@@ -97,10 +85,9 @@ export function StepTimeline({ filesToCreate, doneWhen, events }: StepTimelinePr
       {steps.map((step, i) => {
         const icon = statusIcon[step.status];
         const isLast = i === steps.length - 1;
-        const isVerification = step.name === "Verification";
 
         return (
-          <div key={step.filePath || "verification"} className="relative flex items-stretch">
+          <div key={step.filePath} className="relative flex items-stretch">
             {/* Timeline track */}
             <div className="flex flex-col items-center w-5 shrink-0">
               <span className={`${icon.classes} leading-5`}>{icon.char}</span>
@@ -116,7 +103,7 @@ export function StepTimeline({ filesToCreate, doneWhen, events }: StepTimelinePr
                   ? "text-neutral-500 line-through"
                   : "text-neutral-100"
               }`}
-              title={isVerification ? doneWhen : step.filePath}
+              title={step.filePath}
             >
               {step.name}
             </div>
