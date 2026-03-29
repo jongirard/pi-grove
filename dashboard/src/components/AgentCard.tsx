@@ -48,8 +48,13 @@ export function AgentCard({
       </div>
 
       {/* Expanded children slot */}
-      {expanded && children && (
+      {expanded && (
         <div className="border-t border-neutral-800/50 bg-neutral-950/40 px-4 py-3">
+          {workStream.brief && (
+            <p className="text-[13px] leading-relaxed text-neutral-500 mb-3 line-clamp-2">
+              {workStream.brief}
+            </p>
+          )}
           {children}
         </div>
       )}
