@@ -108,7 +108,7 @@ export async function groveCanopy(
 
     if (event.type === "state_change" && event.status === "done") {
       const ws = plan.workStreams[event.workStreamId];
-      if (ws) gitManager.onWorkStreamDone(ws);
+      if (ws) gitManager.onWorkStreamDone(ws, plan.name);
     }
   });
 

@@ -6,7 +6,7 @@ export class GroveGitManager {
 
   constructor(private projectRoot: string) {}
 
-  async onWorkStreamDone(workStream: WorkStream): Promise<string | null> {
+  async onWorkStreamDone(workStream: WorkStream, planName?: string): Promise<string | null> {
     try {
       const isRepo = await git.isGitRepo(this.projectRoot);
       if (!isRepo) return null;
@@ -15,7 +15,12 @@ export class GroveGitManager {
       if (!hasChanges) return null;
 
       await git.stageAll(this.projectRoot);
-      const message = `grove(${workStream.id}): ${workStream.name} — complete`;
+      const title = planName
+        ? `grove(${workStream.id}): ${planName} — ${workStream.name}, Phase ${workStream.phase}`
+        : `grove(${workStream.id}): ${workStream.name} — complete`;
+      const message = workStream.brief
+        ? `${title}\n\n${workStream.brief}`
+        : title;
       const hash = await git.commit(this.projectRoot, message);
       return hash;
     } catch {

@@ -45,7 +45,21 @@ describe("GroveGitManager", () => {
   });
 
   describe("onWorkStreamDone", () => {
-    it("commits with correct message format", async () => {
+    it("commits with plan name, workstream name, phase, and brief", async () => {
+      mockGit.isGitRepo.mockResolvedValue(true);
+      mockGit.hasUncommittedChanges.mockResolvedValue(true);
+      mockGit.stageAll.mockResolvedValue(undefined);
+      mockGit.commit.mockResolvedValue("abc1234");
+
+      await manager.onWorkStreamDone(makeWorkStream(), "ADR-003: Capture Pipeline");
+
+      expect(mockGit.commit).toHaveBeenCalledWith(
+        "/test/project",
+        "grove(2A): ADR-003: Capture Pipeline — Shared Types, Phase 1\n\nCreate shared type definitions",
+      );
+    });
+
+    it("falls back to simple format without plan name", async () => {
       mockGit.isGitRepo.mockResolvedValue(true);
       mockGit.hasUncommittedChanges.mockResolvedValue(true);
       mockGit.stageAll.mockResolvedValue(undefined);
@@ -55,7 +69,7 @@ describe("GroveGitManager", () => {
 
       expect(mockGit.commit).toHaveBeenCalledWith(
         "/test/project",
-        "grove(2A): Shared Types — complete",
+        "grove(2A): Shared Types — complete\n\nCreate shared type definitions",
       );
     });
 
@@ -65,7 +79,7 @@ describe("GroveGitManager", () => {
       mockGit.stageAll.mockResolvedValue(undefined);
       mockGit.commit.mockResolvedValue("abc1234");
 
-      const hash = await manager.onWorkStreamDone(makeWorkStream());
+      const hash = await manager.onWorkStreamDone(makeWorkStream(), "Test Plan");
       expect(hash).toBe("abc1234");
     });
 
