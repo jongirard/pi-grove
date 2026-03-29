@@ -14,6 +14,7 @@ export function useWebSocket(url: string): {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connect = useCallback(() => {
+    if (!url) return; // Skip connection (e.g. demo mode)
     try {
       const ws = new WebSocket(url);
       wsRef.current = ws;

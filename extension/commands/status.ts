@@ -25,7 +25,7 @@ export async function groveStatus(
   const lines: string[] = [`Plan: ${plan.name}`, ""];
 
   for (const slot of plan.timeSlots) {
-    lines.push(`Time Slot ${slot.slot}:`);
+    lines.push(`Phase ${slot.slot}:`);
     for (const wsId of slot.workStreamIds) {
       const ws = plan.workStreams[wsId];
       if (!ws) continue;

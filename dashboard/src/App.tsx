@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useWebSocket } from "./hooks/useWebSocket.js";
+import { useSimulation } from "./hooks/useSimulation.js";
 import { usePlanState } from "./hooks/usePlanState.js";
 import { DashboardHeader } from "./components/DashboardHeader.js";
 import { Sidebar } from "./components/Sidebar.js";
@@ -10,9 +11,13 @@ function getWebSocketUrl(): string {
   return `${protocol}//${window.location.host}/ws`;
 }
 
+const isDemoMode = new URLSearchParams(window.location.search).has("demo");
+
 export function App() {
   const wsUrl = useMemo(() => getWebSocketUrl(), []);
-  const { connected, sendCommand, lastEvent, events } = useWebSocket(wsUrl);
+  const ws = useWebSocket(isDemoMode ? "" : wsUrl);
+  const sim = useSimulation();
+  const { connected, sendCommand, lastEvent, events } = isDemoMode ? sim : ws;
   const { plan, workStreams, timeSlots, aggregateMetrics } = usePlanState(
     events,
     lastEvent,
@@ -48,9 +53,14 @@ export function App() {
         />
 
         <main className="flex-1 overflow-y-auto p-4">
-          {!connected && (
+          {!connected && !isDemoMode && (
             <div className="absolute right-4 top-14 rounded bg-red-900/60 px-3 py-1.5 text-xs text-red-300">
               Disconnected — reconnecting...
+            </div>
+          )}
+          {isDemoMode && (
+            <div className="absolute right-4 top-14 rounded bg-amber-900/40 border border-amber-800/50 px-3 py-1.5 text-xs text-amber-400">
+              Demo mode — simulated data
             </div>
           )}
 
@@ -58,6 +68,7 @@ export function App() {
             workStreams={workStreams}
             timeSlots={timeSlots}
             events={events}
+            sendCommand={sendCommand}
           />
         </main>
       </div>

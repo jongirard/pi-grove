@@ -1,33 +1,106 @@
-import type { WorkStream, AgentMetrics, TimeSlot, GroveEvent } from "../lib/types.js";
+import { useMemo, useCallback } from "react";
+import type { WorkStream, AgentMetrics, TimeSlot, GroveEvent, AgentToolEvent, GroveCommand } from "../lib/types.js";
 import { useAgentMetrics } from "../hooks/useAgentMetrics.js";
 import { AgentCard } from "./AgentCard.js";
+import { StepTimeline } from "./StepTimeline.js";
+import { TerminalView } from "./TerminalView.js";
+import { SteeringInput } from "./SteeringInput.js";
+import { PlantPrompt } from "./PlantPrompt.js";
 
 interface CardGridProps {
   workStreams: Record<string, WorkStream & { metrics: AgentMetrics }>;
   timeSlots: TimeSlot[];
   events: GroveEvent[];
+  sendCommand: (cmd: GroveCommand) => void;
 }
 
-function AgentCardWithMetrics({
-  workStream,
-  events,
-}: {
-  workStream: WorkStream & { metrics: AgentMetrics };
-  events: GroveEvent[];
-}) {
-  const metrics = useAgentMetrics(workStream.id, events);
-  // Prefer live metrics from events; fall back to props
-  const resolvedMetrics = metrics.toolCalls > 0 || metrics.elapsedMs > 0
-    ? metrics
-    : workStream.metrics;
-
-  return (
-    <AgentCard workStream={workStream} metrics={resolvedMetrics} />
+/** Extract agent_event entries for a specific work stream. */
+function useWorkStreamToolEvents(
+  workStreamId: string,
+  events: GroveEvent[],
+): AgentToolEvent[] {
+  return useMemo(
+    () =>
+      events
+        .filter(
+          (e): e is Extract<GroveEvent, { type: "agent_event" }> =>
+            e.type === "agent_event" && e.workStreamId === workStreamId,
+        )
+        .map((e) => e.event),
+    [workStreamId, events.length],
   );
 }
 
-export function CardGrid({ workStreams, timeSlots, events }: CardGridProps) {
+/** Derive the set of slots that have received a slot_ready event. */
+function useReadySlots(events: GroveEvent[]): Set<number> {
+  return useMemo(() => {
+    const ready = new Set<number>();
+    for (const e of events) {
+      if (e.type === "slot_ready") ready.add(e.slot);
+    }
+    return ready;
+  }, [events.length]);
+}
+
+function AgentCardWithDetails({
+  workStream,
+  events,
+  sendCommand,
+}: {
+  workStream: WorkStream & { metrics: AgentMetrics };
+  events: GroveEvent[];
+  sendCommand: (cmd: GroveCommand) => void;
+}) {
+  const metrics = useAgentMetrics(workStream.id, events);
+  const resolvedMetrics =
+    metrics.toolCalls > 0 || metrics.elapsedMs > 0 ? metrics : workStream.metrics;
+  const toolEvents = useWorkStreamToolEvents(workStream.id, events);
+
+  const handleSteer = useCallback(
+    (message: string) => {
+      const isRerun =
+        workStream.status === "done" || workStream.status === "needs_attention";
+      sendCommand(
+        isRerun
+          ? { type: "rerun_agent", workStreamId: workStream.id, message }
+          : { type: "steer_agent", workStreamId: workStream.id, message },
+      );
+    },
+    [workStream.id, workStream.status, sendCommand],
+  );
+
+  return (
+    <AgentCard
+      workStream={workStream}
+      metrics={resolvedMetrics}
+      terminalSlot={<TerminalView events={toolEvents} isOpen={true} />}
+    >
+      <div className="space-y-3">
+        <StepTimeline
+          filesToCreate={workStream.filesToCreate}
+          doneWhen={workStream.doneWhen}
+          events={toolEvents}
+        />
+        <SteeringInput
+          workStreamId={workStream.id}
+          status={workStream.status}
+          onSend={handleSteer}
+        />
+      </div>
+    </AgentCard>
+  );
+}
+
+export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGridProps) {
   const ids = Object.keys(workStreams);
+  const readySlots = useReadySlots(events);
+
+  const handlePlant = useCallback(
+    (slot: number) => {
+      sendCommand({ type: "plant_slot", slot });
+    },
+    [sendCommand],
+  );
 
   if (ids.length === 0) {
     return (
@@ -39,44 +112,87 @@ export function CardGrid({ workStreams, timeSlots, events }: CardGridProps) {
 
   // Group work streams by time slot for ordering
   const slotted = new Set<string>();
-  const groups: { label: string; streamIds: string[] }[] = [];
+  const groups: { slot: TimeSlot; streamIds: string[] }[] = [];
 
   for (const slot of timeSlots) {
     const activeIds = slot.workStreamIds.filter((id) => id in workStreams);
     if (activeIds.length > 0) {
-      groups.push({ label: `Slot ${slot.slot}`, streamIds: activeIds });
+      groups.push({ slot, streamIds: activeIds });
       activeIds.forEach((id) => slotted.add(id));
     }
   }
 
-  // Anything not in a slot
   const unslotted = ids.filter((id) => !slotted.has(id));
-  if (unslotted.length > 0) {
-    groups.push({ label: "Other", streamIds: unslotted });
-  }
 
   return (
     <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.label}>
+      {groups.map((group) => {
+        const slotNum = group.slot.slot;
+        const isReady = readySlots.has(slotNum);
+        // A slot is "plantable" when it's ready and all its streams are still
+        // in pending/ready (i.e. no agent has started yet)
+        const allPendingOrReady = group.streamIds.every((id) => {
+          const s = workStreams[id]?.status;
+          return s === "pending" || s === "ready";
+        });
+        const showPlantPrompt = isReady && allPendingOrReady;
+
+        return (
+          <section key={slotNum}>
+            <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2 px-1">
+              Slot {slotNum}
+            </h2>
+
+            {showPlantPrompt && (
+              <div className="mb-4">
+                <PlantPrompt
+                  slot={slotNum}
+                  workStreamIds={group.slot.workStreamIds}
+                  workStreams={workStreams}
+                  onPlant={handlePlant}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {group.streamIds.map((id) => {
+                const ws = workStreams[id];
+                if (!ws) return null;
+                return (
+                  <AgentCardWithDetails
+                    key={id}
+                    workStream={ws}
+                    events={events}
+                    sendCommand={sendCommand}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+
+      {unslotted.length > 0 && (
+        <section>
           <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2 px-1">
-            {group.label}
+            Other
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {group.streamIds.map((id) => {
+          <div className="flex flex-col gap-3">
+            {unslotted.map((id) => {
               const ws = workStreams[id];
               if (!ws) return null;
               return (
-                <AgentCardWithMetrics
+                <AgentCardWithDetails
                   key={id}
                   workStream={ws}
                   events={events}
+                  sendCommand={sendCommand}
                 />
               );
             })}
           </div>
         </section>
-      ))}
+      )}
     </div>
   );
 }

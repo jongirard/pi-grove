@@ -74,7 +74,7 @@ export async function groveInit(
   // 7. Show plan summary
   const wsCount = Object.keys(plan.workStreams).length;
   const slotCount = plan.timeSlots.length;
-  const summary = `${plan.name}: ${wsCount} work streams, ${slotCount} time slots`;
+  const summary = `${plan.name}: ${wsCount} work streams, ${slotCount} phases`;
 
   // 8. Ask confirmation
   const confirmed = await ctx.ui.confirm("Initialize Grove?", summary);

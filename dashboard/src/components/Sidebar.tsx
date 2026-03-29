@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { TimeSlot, WorkStream, AgentMetrics } from "../lib/types.js";
 import { STATUS_ICONS, STATUS_COLORS } from "../lib/constants.js";
 
@@ -59,15 +60,14 @@ export function Sidebar({
               onClick={() => toggleSlot(slot.slot)}
               className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-neutral-900"
             >
-              <span
-                className={`text-xs text-neutral-500 transition-transform ${
-                  isCollapsed ? "" : "rotate-90"
+              <ChevronDown
+                size={14}
+                className={`text-neutral-500 transition-transform duration-200 ${
+                  isCollapsed ? "-rotate-90" : ""
                 }`}
-              >
-                ▸
-              </span>
+              />
               <span className="text-xs font-medium text-neutral-300">
-                Time Slot {slot.slot}
+                Phase {slot.slot}
               </span>
               <span className="ml-auto rounded-full bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400">
                 {doneCount}/{slotStreams.length}
