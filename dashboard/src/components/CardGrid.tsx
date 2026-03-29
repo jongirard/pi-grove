@@ -6,6 +6,7 @@ import { StepTimeline } from "./StepTimeline.js";
 import { TerminalView } from "./TerminalView.js";
 import { SteeringInput } from "./SteeringInput.js";
 import { PlantPrompt } from "./PlantPrompt.js";
+import { PhaseConnector } from "./PhaseConnector.js";
 
 interface CardGridProps {
   workStreams: Record<string, WorkStream & { metrics: AgentMetrics }>;
@@ -13,6 +14,7 @@ interface CardGridProps {
   events: GroveEvent[];
   sendCommand: (cmd: GroveCommand) => void;
   selectedPhase: number | null;
+  onSelectPhase: (phase: number | null) => void;
 }
 
 /** Extract agent_event entries for a specific work stream. */
@@ -92,7 +94,7 @@ function AgentCardWithDetails({
   );
 }
 
-export function CardGrid({ workStreams, timeSlots, events, sendCommand, selectedPhase }: CardGridProps) {
+export function CardGrid({ workStreams, timeSlots, events, sendCommand, selectedPhase, onSelectPhase }: CardGridProps) {
   const ids = Object.keys(workStreams);
   const readySlots = useReadySlots(events);
 
@@ -145,6 +147,15 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand, selected
         });
         const showPlantPrompt = isReady && allPendingOrReady;
 
+        // Find the next phase (if any)
+        const currentGroupIdx = groups.findIndex((g) => g.slot.slot === slotNum);
+        const nextGroup = groups[currentGroupIdx + 1];
+
+        // Current phase is "complete" when all its streams are done
+        const allDone = group.streamIds.every(
+          (id) => workStreams[id]?.status === "done",
+        );
+
         return (
           <section key={slotNum}>
             {/* Only show phase header in overview mode */}
@@ -179,6 +190,15 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand, selected
                 );
               })}
             </div>
+
+            {/* Phase connector to next phase */}
+            {!isOverview && nextGroup && (
+              <PhaseConnector
+                nextPhase={nextGroup.slot.slot}
+                isReady={allDone}
+                onNavigate={onSelectPhase}
+              />
+            )}
           </section>
         );
       })}

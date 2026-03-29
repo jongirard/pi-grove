@@ -90,6 +90,7 @@ export function App() {
             events={events}
             sendCommand={sendCommand}
             selectedPhase={selectedPhase}
+            onSelectPhase={setSelectedPhase}
           />
         </main>
       </div>
