@@ -1,4 +1,8 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { groveInit } from "./commands/init.js";
+import { grovePlant } from "./commands/plant.js";
+import { groveCanopy } from "./commands/canopy.js";
+import { groveStatus } from "./commands/status.js";
 
 export default function grove(pi: ExtensionAPI): void {
   pi.registerCommand("grove", {
@@ -10,15 +14,21 @@ export default function grove(pi: ExtensionAPI): void {
         ? filtered.map((s) => ({ value: s, label: s }))
         : null;
     },
-    handler: async (_args, ctx) => {
-      const [subcommand] = _args.trim().split(/\s+/);
+    handler: async (args, ctx) => {
+      const trimmed = args.trim();
+      const spaceIdx = trimmed.indexOf(" ");
+      const subcommand = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx);
+      const subArgs = spaceIdx === -1 ? "" : trimmed.slice(spaceIdx + 1).trim();
+
       switch (subcommand) {
         case "init":
+          return groveInit(subArgs, ctx);
         case "plant":
+          return grovePlant(subArgs, ctx);
         case "canopy":
+          return groveCanopy(subArgs, ctx);
         case "status":
-          ctx.ui.notify(`/grove ${subcommand} — not yet implemented`, "info");
-          break;
+          return groveStatus(subArgs, ctx);
         default:
           ctx.ui.notify(
             "Usage: /grove <init|plant|canopy|status>",
