@@ -1,4 +1,5 @@
 import type { AgentSession, AgentSessionEvent } from "@mariozechner/pi-coding-agent";
+import type { Usage } from "@mariozechner/pi-ai";
 import type { GroveBroadcaster } from "../server/ws.js";
 import type { Orchestrator } from "./machine.js";
 import type { AgentMetrics } from "../lib/types.js";
@@ -55,6 +56,9 @@ export function bridgeAgentEvents(
 
   const metricsTimer = setInterval(broadcastMetrics, METRICS_INTERVAL_MS);
 
+  /** Cache tool args by toolCallId so we can include them in end events. */
+  const pendingToolArgs = new Map<string, string>();
+
   /** Extract the file path from tool args when possible. */
   function extractFile(toolName: string, args: unknown): string | null {
     if (!FILE_TOOLS.has(toolName) || typeof args !== "object" || args === null) {
@@ -72,15 +76,18 @@ export function bridgeAgentEvents(
         const filePath = extractFile(event.toolName, event.args);
         if (filePath) metrics.currentFile = filePath;
 
+        const inputStr = typeof event.args === "string"
+          ? event.args
+          : JSON.stringify(event.args);
+        pendingToolArgs.set(event.toolCallId, inputStr);
+
         broadcaster.broadcast({
           type: "agent_event",
           workStreamId,
           event: {
             timestamp: Date.now(),
             toolName: event.toolName,
-            input: typeof event.args === "string"
-              ? event.args
-              : JSON.stringify(event.args),
+            input: inputStr,
             status: "started",
           },
         });
@@ -89,6 +96,9 @@ export function bridgeAgentEvents(
 
       case "tool_execution_end": {
         metrics.toolCalls += 1;
+
+        const cachedInput = pendingToolArgs.get(event.toolCallId) ?? "";
+        pendingToolArgs.delete(event.toolCallId);
 
         const outputStr =
           typeof event.result === "string"
@@ -101,7 +111,7 @@ export function bridgeAgentEvents(
           event: {
             timestamp: Date.now(),
             toolName: event.toolName,
-            input: "",
+            input: cachedInput,
             output: outputStr.slice(0, 500),
             status: event.isError ? "failed" : "completed",
           },
@@ -109,6 +119,23 @@ export function bridgeAgentEvents(
 
         // Broadcast metrics after every tool call
         broadcastMetrics();
+        break;
+      }
+
+      case "message_end": {
+        const msg = event.message;
+        if (
+          msg &&
+          typeof msg === "object" &&
+          "role" in msg &&
+          msg.role === "assistant" &&
+          "usage" in msg
+        ) {
+          const usage = msg.usage as Usage;
+          metrics.tokensUsed += usage.totalTokens;
+          metrics.estimatedCost += usage.cost.total;
+          broadcastMetrics();
+        }
         break;
       }
 
@@ -149,5 +176,6 @@ export function bridgeAgentEvents(
   return () => {
     clearInterval(metricsTimer);
     unsubscribe();
+    pendingToolArgs.clear();
   };
 }
