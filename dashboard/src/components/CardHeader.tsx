@@ -1,3 +1,4 @@
+import { Terminal } from "lucide-react";
 import type { WorkStream, AgentMetrics } from "../lib/types.js";
 import { STATUS_LABELS, STATUS_BADGE_COLORS } from "../lib/constants.js";
 import { formatCost, formatTokens, formatElapsed } from "../hooks/useAgentMetrics.js";
@@ -20,30 +21,24 @@ export function CardHeader({ workStream, metrics, onToggleTerminal }: CardHeader
   const filename = extractFilename(metrics.currentFile);
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 min-w-0">
-      {/* ID + Name */}
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-mono text-xs text-neutral-500 shrink-0">
-          {workStream.id}
-        </span>
-        <span className="text-sm text-neutral-100 truncate">
-          {workStream.name}
-        </span>
-      </div>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pr-3 py-2 min-w-0">
+      {/* Name */}
+      <span className="text-sm text-neutral-100 truncate">
+        {workStream.name}
+      </span>
 
       {/* Status badge */}
       <span
-        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeClasses}`}
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${badgeClasses}`}
       >
         {label}
       </span>
 
       {/* Metrics cluster */}
-      <div className="flex items-center gap-3 ml-auto text-xs text-neutral-400">
+      <div className="flex items-center gap-3 ml-auto text-[11px] text-neutral-500">
         {metrics.toolCalls > 0 && (
           <span className="font-mono" title="Tool calls">
-            <span className="text-neutral-500 mr-1">wrench</span>
-            {metrics.toolCalls}
+            {metrics.toolCalls} calls
           </span>
         )}
         {metrics.estimatedCost > 0 && (
@@ -63,7 +58,7 @@ export function CardHeader({ workStream, metrics, onToggleTerminal }: CardHeader
         )}
         {filename && (
           <span
-            className="font-mono text-neutral-500 truncate max-w-[120px]"
+            className="font-mono text-neutral-600 truncate max-w-[120px]"
             title={metrics.currentFile ?? undefined}
           >
             {filename}
@@ -79,10 +74,10 @@ export function CardHeader({ workStream, metrics, onToggleTerminal }: CardHeader
             e.stopPropagation();
             onToggleTerminal();
           }}
-          className="text-neutral-500 hover:text-neutral-300 transition text-sm ml-1 shrink-0"
+          className="text-neutral-600 hover:text-neutral-300 transition-colors shrink-0 p-0.5 rounded hover:bg-neutral-800"
           title="Toggle terminal"
         >
-          &#x2922;
+          <Terminal size={13} />
         </button>
       )}
     </div>

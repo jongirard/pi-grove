@@ -30,13 +30,10 @@ export function PlantPrompt({ slot, workStreamIds, workStreams, onPlant }: Plant
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-500/80">
-            Phase {slot}
-          </p>
-          <h3 className="mt-1 text-base font-medium text-neutral-100">
+          <h3 className="text-sm font-medium text-neutral-100">
             Ready to plant
           </h3>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-0.5 text-xs text-neutral-500">
             {workStreamIds.length} work stream{workStreamIds.length !== 1 ? "s" : ""} launching
             in parallel
           </p>
@@ -47,7 +44,7 @@ export function PlantPrompt({ slot, workStreamIds, workStreams, onPlant }: Plant
           onClick={handlePlant}
           disabled={planting}
           className={
-            "shrink-0 mt-1 " +
+            "shrink-0 " +
             "bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 " +
             "text-white rounded-lg " +
             "px-5 py-2 text-sm font-semibold " +
@@ -56,7 +53,7 @@ export function PlantPrompt({ slot, workStreamIds, workStreams, onPlant }: Plant
             "disabled:opacity-50 disabled:cursor-not-allowed"
           }
         >
-          {planting ? "Planting\u2026" : `Plant T${slot}`}
+          {planting ? "Planting\u2026" : "Plant"}
         </button>
       </div>
 

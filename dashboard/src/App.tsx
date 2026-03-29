@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useWebSocket } from "./hooks/useWebSocket.js";
 import { useSimulation } from "./hooks/useSimulation.js";
 import { usePlanState } from "./hooks/usePlanState.js";
@@ -23,10 +23,30 @@ export function App() {
     lastEvent,
   );
 
-  const [selectedWorkStream, setSelectedWorkStream] = useState<string | null>(
-    null,
-  );
+  const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
   const [branchMode, setBranchMode] = useState(false);
+
+  // Auto-select the first actionable phase when plan loads
+  useEffect(() => {
+    if (timeSlots.length === 0 || selectedPhase !== null) return;
+
+    // Find first phase that's ready or has running streams
+    const actionablePhase = timeSlots.find((slot) => {
+      const streams = slot.workStreamIds
+        .map((id) => workStreams[id])
+        .filter(Boolean);
+      return streams.some(
+        (ws) =>
+          ws.status === "ready" ||
+          ws.status === "running" ||
+          ws.status === "needs_attention",
+      );
+    });
+
+    if (actionablePhase) {
+      setSelectedPhase(actionablePhase.slot);
+    }
+  }, [timeSlots, workStreams, selectedPhase]);
 
   const handleToggleBranchMode = useCallback(() => {
     const next = !branchMode;
@@ -48,18 +68,18 @@ export function App() {
           plan={plan}
           workStreams={workStreams}
           timeSlots={timeSlots}
-          onSelectWorkStream={setSelectedWorkStream}
-          selectedWorkStream={selectedWorkStream}
+          selectedPhase={selectedPhase}
+          onSelectPhase={setSelectedPhase}
         />
 
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto px-5 py-4">
           {!connected && !isDemoMode && (
-            <div className="absolute right-4 top-14 rounded bg-red-900/60 px-3 py-1.5 text-xs text-red-300">
+            <div className="absolute right-4 top-14 rounded-md bg-red-900/60 px-3 py-1.5 text-xs text-red-300">
               Disconnected — reconnecting...
             </div>
           )}
           {isDemoMode && (
-            <div className="absolute right-4 top-14 rounded bg-amber-900/40 border border-amber-800/50 px-3 py-1.5 text-xs text-amber-400">
+            <div className="absolute right-4 top-14 rounded-md bg-amber-900/40 border border-amber-800/50 px-3 py-1.5 text-xs text-amber-400">
               Demo mode — simulated data
             </div>
           )}
@@ -69,6 +89,7 @@ export function App() {
             timeSlots={timeSlots}
             events={events}
             sendCommand={sendCommand}
+            selectedPhase={selectedPhase}
           />
         </main>
       </div>

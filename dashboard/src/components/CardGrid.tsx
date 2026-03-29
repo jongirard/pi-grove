@@ -12,6 +12,7 @@ interface CardGridProps {
   timeSlots: TimeSlot[];
   events: GroveEvent[];
   sendCommand: (cmd: GroveCommand) => void;
+  selectedPhase: number | null;
 }
 
 /** Extract agent_event entries for a specific work stream. */
@@ -91,7 +92,7 @@ function AgentCardWithDetails({
   );
 }
 
-export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGridProps) {
+export function CardGrid({ workStreams, timeSlots, events, sendCommand, selectedPhase }: CardGridProps) {
   const ids = Object.keys(workStreams);
   const readySlots = useReadySlots(events);
 
@@ -110,7 +111,7 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGr
     );
   }
 
-  // Group work streams by time slot for ordering
+  // Group work streams by time slot
   const slotted = new Set<string>();
   const groups: { slot: TimeSlot; streamIds: string[] }[] = [];
 
@@ -124,13 +125,20 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGr
 
   const unslotted = ids.filter((id) => !slotted.has(id));
 
+  // Filter to selected phase
+  const visibleGroups =
+    selectedPhase !== null
+      ? groups.filter((g) => g.slot.slot === selectedPhase)
+      : groups;
+
+  // Overview: show all phases
+  const isOverview = selectedPhase === null;
+
   return (
-    <div className="space-y-6">
-      {groups.map((group) => {
+    <div className="space-y-5">
+      {visibleGroups.map((group) => {
         const slotNum = group.slot.slot;
         const isReady = readySlots.has(slotNum);
-        // A slot is "plantable" when it's ready and all its streams are still
-        // in pending/ready (i.e. no agent has started yet)
         const allPendingOrReady = group.streamIds.every((id) => {
           const s = workStreams[id]?.status;
           return s === "pending" || s === "ready";
@@ -139,12 +147,15 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGr
 
         return (
           <section key={slotNum}>
-            <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2 px-1">
-              Slot {slotNum}
-            </h2>
+            {/* Only show phase header in overview mode */}
+            {isOverview && (
+              <h2 className="text-[11px] font-medium text-neutral-500 uppercase tracking-wider mb-3 px-0.5">
+                Phase {slotNum}
+              </h2>
+            )}
 
             {showPlantPrompt && (
-              <div className="mb-4">
+              <div className="mb-3">
                 <PlantPrompt
                   slot={slotNum}
                   workStreamIds={group.slot.workStreamIds}
@@ -172,12 +183,13 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGr
         );
       })}
 
-      {unslotted.length > 0 && (
+      {/* Unslotted streams only in overview */}
+      {isOverview && unslotted.length > 0 && (
         <section>
-          <h2 className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2 px-1">
+          <h2 className="text-[11px] font-medium text-neutral-500 uppercase tracking-wider mb-3 px-0.5">
             Other
           </h2>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {unslotted.map((id) => {
               const ws = workStreams[id];
               if (!ws) return null;
@@ -192,6 +204,13 @@ export function CardGrid({ workStreams, timeSlots, events, sendCommand }: CardGr
             })}
           </div>
         </section>
+      )}
+
+      {/* Empty state when a phase is selected but has no streams */}
+      {selectedPhase !== null && visibleGroups.length === 0 && (
+        <div className="flex items-center justify-center py-16 text-neutral-500 text-sm">
+          No work streams in this phase
+        </div>
       )}
     </div>
   );

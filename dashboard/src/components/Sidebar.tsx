@@ -1,7 +1,16 @@
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
-import type { TimeSlot, WorkStream, AgentMetrics } from "../lib/types.js";
-import { STATUS_ICONS, STATUS_COLORS } from "../lib/constants.js";
+import { ChevronRight, Layers } from "lucide-react";
+import type { TimeSlot, WorkStream, AgentMetrics, WorkStreamStatus } from "../lib/types.js";
+
+/** Solid dot colors for sidebar work stream indicators. */
+const SIDEBAR_DOT_COLORS: Record<WorkStreamStatus, string> = {
+  pending: "bg-neutral-600",
+  ready: "bg-sky-400",
+  running: "bg-amber-400",
+  agent_complete: "bg-violet-400",
+  verifying: "bg-cyan-400",
+  done: "bg-emerald-400",
+  needs_attention: "bg-red-400",
+};
 
 type WorkStreamWithMetrics = WorkStream & { metrics: AgentMetrics };
 
@@ -9,26 +18,67 @@ interface SidebarProps {
   plan: { name: string } | null;
   workStreams: Record<string, WorkStreamWithMetrics>;
   timeSlots: TimeSlot[];
-  onSelectWorkStream: (id: string) => void;
-  selectedWorkStream: string | null;
+  selectedPhase: number | null;
+  onSelectPhase: (phase: number | null) => void;
 }
+
+type PhaseStatus = "pending" | "ready" | "active" | "done";
+
+function derivePhaseStatus(
+  streams: WorkStreamWithMetrics[],
+): PhaseStatus {
+  if (streams.length === 0) return "pending";
+  if (streams.every((ws) => ws.status === "done")) return "done";
+  if (
+    streams.some(
+      (ws) =>
+        ws.status === "running" ||
+        ws.status === "agent_complete" ||
+        ws.status === "verifying" ||
+        ws.status === "needs_attention",
+    )
+  )
+    return "active";
+  if (streams.some((ws) => ws.status === "ready")) return "ready";
+  return "pending";
+}
+
+const PHASE_STATUS_STYLES: Record<
+  PhaseStatus,
+  { dot: string; label: string; text: string }
+> = {
+  pending: {
+    dot: "bg-neutral-600",
+    label: "Pending",
+    text: "text-neutral-500",
+  },
+  ready: {
+    dot: "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]",
+    label: "Ready",
+    text: "text-emerald-400",
+  },
+  active: {
+    dot: "bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.4)]",
+    label: "In progress",
+    text: "text-amber-400",
+  },
+  done: {
+    dot: "bg-emerald-400",
+    label: "Complete",
+    text: "text-emerald-400",
+  },
+};
 
 export function Sidebar({
   plan,
   workStreams,
   timeSlots,
-  onSelectWorkStream,
-  selectedWorkStream,
+  selectedPhase,
+  onSelectPhase,
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
-
-  const toggleSlot = (slot: number) => {
-    setCollapsed((prev) => ({ ...prev, [slot]: !prev[slot] }));
-  };
-
   if (!plan) {
     return (
-      <aside className="flex w-70 flex-col border-r border-neutral-800 bg-neutral-950">
+      <aside className="flex w-56 flex-col border-r border-neutral-800/80 bg-neutral-950">
         <div className="flex flex-1 items-center justify-center text-sm text-neutral-500">
           No plan loaded
         </div>
@@ -37,76 +87,107 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex w-70 flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-950">
-      <div className="px-3 py-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Work Streams
-        </h2>
+    <aside className="flex w-56 flex-col border-r border-neutral-800/80 bg-neutral-950">
+      {/* Overview link */}
+      <div className="px-2 pt-3 pb-1">
+        <button
+          type="button"
+          onClick={() => onSelectPhase(null)}
+          className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
+            selectedPhase === null
+              ? "bg-neutral-800/80 text-neutral-100"
+              : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
+          }`}
+        >
+          <Layers size={14} className="shrink-0 opacity-60" />
+          <span className="text-xs font-medium">Overview</span>
+        </button>
       </div>
 
-      {timeSlots.map((slot) => {
-        const isCollapsed = collapsed[slot.slot] ?? false;
-        const slotStreams = slot.workStreamIds
-          .map((id) => workStreams[id])
-          .filter(Boolean);
-        const doneCount = slotStreams.filter(
-          (ws) => ws.status === "done",
-        ).length;
+      {/* Phase separator */}
+      <div className="mx-3 my-1.5 border-t border-neutral-800/60" />
 
-        return (
-          <div key={slot.slot}>
-            <button
-              type="button"
-              onClick={() => toggleSlot(slot.slot)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-neutral-900"
-            >
-              <ChevronDown
-                size={14}
-                className={`text-neutral-500 transition-transform duration-200 ${
-                  isCollapsed ? "-rotate-90" : ""
-                }`}
-              />
-              <span className="text-xs font-medium text-neutral-300">
-                Phase {slot.slot}
-              </span>
-              <span className="ml-auto rounded-full bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400">
-                {doneCount}/{slotStreams.length}
-              </span>
-            </button>
+      <div className="px-2 pb-1">
+        <span className="px-2.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
+          Phases
+        </span>
+      </div>
 
-            <div
-              className={`overflow-hidden transition-all duration-200 ${
-                isCollapsed ? "max-h-0" : "max-h-[2000px]"
-              }`}
-            >
-              {slotStreams.map((ws) => (
+      {/* Phase navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 pb-3">
+        <div className="flex flex-col gap-0.5">
+          {timeSlots.map((slot) => {
+            const streams = slot.workStreamIds
+              .map((id) => workStreams[id])
+              .filter(Boolean);
+            const phaseStatus = derivePhaseStatus(streams);
+            const style = PHASE_STATUS_STYLES[phaseStatus];
+            const isSelected = selectedPhase === slot.slot;
+            const doneCount = streams.filter(
+              (ws) => ws.status === "done",
+            ).length;
+
+            return (
+              <div key={slot.slot}>
                 <button
-                  key={ws.id}
                   type="button"
-                  onClick={() => onSelectWorkStream(ws.id)}
-                  className={`flex w-full items-center gap-2 px-4 py-1.5 text-left transition-colors hover:bg-neutral-900 ${
-                    selectedWorkStream === ws.id
-                      ? "bg-neutral-900/80"
-                      : ""
+                  onClick={() => onSelectPhase(slot.slot)}
+                  className={`group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
+                    isSelected
+                      ? "bg-neutral-800/80 text-neutral-100"
+                      : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
                   }`}
                 >
+                  {/* Phase status dot */}
                   <span
-                    className={`text-sm ${STATUS_COLORS[ws.status]}`}
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${style.dot}`}
+                  />
+
+                  <span className="flex-1 text-xs font-medium min-w-0 truncate">
+                    Phase {slot.slot}
+                  </span>
+
+                  <span
+                    className={`text-[10px] shrink-0 ${
+                      isSelected ? style.text : "text-neutral-600"
+                    }`}
                   >
-                    {STATUS_ICONS[ws.status]}
+                    {doneCount}/{streams.length}
                   </span>
-                  <span className="truncate text-xs text-neutral-300">
-                    <span className="font-medium text-neutral-100">
-                      {ws.id}:
-                    </span>{" "}
-                    {ws.name}
-                  </span>
+
+                  <ChevronRight
+                    size={12}
+                    className={`shrink-0 transition-opacity ${
+                      isSelected
+                        ? "opacity-40"
+                        : "opacity-0 group-hover:opacity-20"
+                    }`}
+                  />
                 </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+
+                {/* Work stream previews — below the button, only when selected */}
+                {isSelected && streams.length > 0 && (
+                  <div className="flex flex-col gap-px px-2.5 pt-1 pb-2">
+                    {streams.map((ws) => (
+                      <div
+                        key={ws.id}
+                        className="flex items-center gap-2.5 rounded px-2.5 py-1"
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${SIDEBAR_DOT_COLORS[ws.status]}`}
+                        />
+                        <span className="truncate text-[11px] text-neutral-500">
+                          {ws.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </nav>
     </aside>
   );
 }
