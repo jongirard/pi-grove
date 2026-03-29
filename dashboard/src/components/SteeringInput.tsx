@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from "react";
+import { Send, RotateCcw } from "lucide-react";
 import type { WorkStreamStatus } from "../lib/types.js";
 
 interface SteeringInputProps {
@@ -24,6 +25,10 @@ function getPlaceholder(status: WorkStreamStatus): string {
     default:
       return "Steering unavailable";
   }
+}
+
+function getButtonIcon(status: WorkStreamStatus) {
+  return status === "done" || status === "needs_attention" ? RotateCcw : Send;
 }
 
 function getButtonLabel(status: WorkStreamStatus): string {
@@ -91,18 +96,23 @@ export function SteeringInput({ workStreamId, status, onSend }: SteeringInputPro
             "disabled:opacity-50 disabled:cursor-not-allowed"
           }
         />
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSend}
-          className={
-            "bg-emerald-600 hover:bg-emerald-500 text-white rounded-md " +
-            "px-4 py-1.5 text-sm font-medium " +
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          }
-        >
-          {getButtonLabel(status)}
-        </button>
+        {(() => { const Icon = getButtonIcon(status); return (
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!canSend}
+            aria-label={getButtonLabel(status)}
+            className={
+              "bg-emerald-600 hover:bg-emerald-500 text-white rounded-md " +
+              "aspect-square h-[34px] shrink-0 " +
+              "flex items-center justify-center " +
+              "disabled:opacity-50 disabled:cursor-not-allowed " +
+              "transition-colors"
+            }
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ); })()}
       </div>
 
       {sentIndicator && (

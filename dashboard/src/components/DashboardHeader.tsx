@@ -1,3 +1,5 @@
+import { Sprout } from "lucide-react";
+
 interface DashboardHeaderProps {
   planName: string | null;
   aggregateMetrics: {
@@ -25,9 +27,7 @@ export function DashboardHeader({
   return (
     <header className="flex h-12 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4">
       <div className="flex items-center gap-3">
-        <span className="text-lg" aria-label="Grove logo">
-          🌳
-        </span>
+        <Sprout className="w-5 h-5 text-emerald-600" aria-label="Grove logo" />
         <span className="text-sm font-semibold text-neutral-100">
           {planName ?? "Grove"}
         </span>
