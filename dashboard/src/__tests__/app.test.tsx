@@ -1,3 +1,4 @@
+/// <reference types="@testing-library/jest-dom" />
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { App } from "../App.js";
