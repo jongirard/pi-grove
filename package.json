@@ -1,13 +1,20 @@
 {
   "name": "pi-grove",
+  "version": "0.1.0",
+  "description": "Plan-aware agent orchestration for Pi",
   "private": true,
-  "keywords": ["pi-package"],
+  "keywords": ["pi-package", "pi", "agent", "orchestration", "dashboard", "xstate"],
+  "license": "MIT",
   "pi": {
     "extensions": ["./extension/index.ts"]
   },
   "workspaces": ["extension", "dashboard"],
   "scripts": {
-    "build": "cd dashboard && bun run build",
-    "typecheck": "bunx tsc --noEmit -p extension/tsconfig.json && bunx tsc --noEmit -p dashboard/tsconfig.json"
+    "build": "bun run build:extension && bun run build:dashboard",
+    "build:extension": "tsc -p extension/tsconfig.json",
+    "build:dashboard": "cd dashboard && bun run build",
+    "typecheck": "bunx tsc --noEmit -p extension/tsconfig.json && bunx tsc --noEmit -p dashboard/tsconfig.json",
+    "test": "cd extension && bun test",
+    "test:watch": "cd extension && bun test --watch"
   }
 }

@@ -1,5 +1,24 @@
+# Build output
 node_modules/
 dist/
-.pi/grove/
 *.tsbuildinfo
+
+# Grove runtime data
+.pi/grove/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Test artifacts
+coverage/
+*.test.tmp/
+
+# Source maps
+*.map
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*~
