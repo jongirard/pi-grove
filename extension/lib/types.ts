@@ -3,6 +3,7 @@
 export interface GrovePlan {
   name: string;
   source: string;
+  sourceFile?: string;
   workStreams: Record<string, WorkStream>;
   timeSlots: TimeSlot[];
 }

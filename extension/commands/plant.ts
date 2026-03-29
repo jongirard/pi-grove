@@ -94,7 +94,7 @@ export async function grovePlant(
   const { port, broadcaster, close: closeServer } = server;
 
   // Initialize spawner now that we have broadcaster
-  spawner = new AgentSpawner(orchestrator, broadcaster, ctx.cwd);
+  spawner = new AgentSpawner(orchestrator, broadcaster, ctx.cwd, plan.sourceFile);
 
   // 7. Subscribe to orchestrator events
   orchestrator.subscribe((event) => {

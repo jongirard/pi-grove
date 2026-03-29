@@ -3,6 +3,7 @@ import {
   codingTools,
   type AgentSession,
 } from "@mariozechner/pi-coding-agent";
+import { existsSync, readFileSync } from "node:fs";
 import type { WorkStream } from "../lib/types.js";
 import type { Orchestrator } from "./machine.js";
 import type { GroveBroadcaster } from "../server/ws.js";
@@ -24,7 +25,7 @@ interface RunningAgent {
  * work stream.  This gives the agent clear context about what it should
  * accomplish, which files it owns, and how to signal completion.
  */
-export function buildAgentSystemPrompt(workStream: WorkStream): string {
+export function buildAgentSystemPrompt(workStream: WorkStream, context?: string): string {
   const lines = [
     `You are an autonomous coding agent working on work stream "${workStream.name}" (id: ${workStream.id}).`,
     "",
@@ -32,6 +33,14 @@ export function buildAgentSystemPrompt(workStream: WorkStream): string {
     workStream.brief,
     "",
   ];
+
+  if (context) {
+    lines.push("## Project Context");
+    lines.push("The following is the original plan document. Use it for design rationale, implementation details, and cross-cutting concerns.");
+    lines.push("");
+    lines.push(context);
+    lines.push("");
+  }
 
   if (workStream.filesToCreate.length > 0) {
     lines.push("## Files to create / modify");
@@ -70,6 +79,7 @@ export class AgentSpawner {
     private orchestrator: Orchestrator,
     private broadcaster: GroveBroadcaster,
     private projectRoot: string,
+    private sourceFile?: string,
   ) {}
 
   // ── Public API ─────────────────────────────────────────────────────
@@ -89,7 +99,9 @@ export class AgentSpawner {
       await this.stopAgent(workStream.id);
     }
 
-    const systemPrompt = buildAgentSystemPrompt(workStream);
+    const context = this.sourceFile && existsSync(this.sourceFile)
+      ? readFileSync(this.sourceFile, "utf-8") : undefined;
+    const systemPrompt = buildAgentSystemPrompt(workStream, context);
 
     const markCompleteTool = createMarkCompleteTool(
       workStream.id,

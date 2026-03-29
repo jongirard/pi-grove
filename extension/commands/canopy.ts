@@ -99,7 +99,7 @@ export async function groveCanopy(
   const { port, broadcaster } = server;
 
   // Initialize spawner now that broadcaster is available
-  spawner = new AgentSpawner(orchestrator, broadcaster, ctx.cwd);
+  spawner = new AgentSpawner(orchestrator, broadcaster, ctx.cwd, plan.sourceFile);
 
   // Subscribe to orchestrator events
   orchestrator.subscribe((event) => {

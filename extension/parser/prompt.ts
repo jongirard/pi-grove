@@ -22,7 +22,7 @@ interface WorkStream {
   name: string;            // Human-readable name
   phase: number;           // Numeric phase/slot this belongs to
   dependencies: string[];  // IDs of work streams this depends on (empty array if none)
-  brief: string;           // One-paragraph description of what this work stream delivers
+  brief: string;           // 2-3 paragraph description: what to deliver, key implementation details, and relevant design decisions from the plan
   filesToCreate: string[]; // Relative file paths this work stream will create or modify
   doneWhen: string;        // Acceptance criteria — when is this work stream complete?
   status: "pending";       // Always "pending" for freshly parsed plans
@@ -47,7 +47,7 @@ interface TimeSlot {
       "name": "Setup Foundation",
       "phase": 1,
       "dependencies": [],
-      "brief": "Create project scaffolding and shared types.",
+      "brief": "Create project scaffolding and shared types. Set up the TypeScript project with strict mode, configure the build toolchain, and define the core domain types that downstream work streams depend on.",
       "filesToCreate": ["src/types.ts", "src/index.ts"],
       "doneWhen": "Types compile and are importable.",
       "status": "pending"
@@ -57,7 +57,7 @@ interface TimeSlot {
       "name": "Build Core Logic",
       "phase": 2,
       "dependencies": ["1A"],
-      "brief": "Implement the main business logic.",
+      "brief": "Implement the main business logic using the shared types from 1A. This includes the processing pipeline, validation layer, and error handling per the design spec.",
       "filesToCreate": ["src/core.ts"],
       "doneWhen": "Unit tests pass.",
       "status": "pending"

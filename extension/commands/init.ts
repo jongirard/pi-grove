@@ -87,6 +87,7 @@ export async function groveInit(
   }
 
   // 9. Write plan and reset state
+  plan.sourceFile = resolved;
   const groveDir = join(ctx.cwd, GROVE_DIR);
   writePlan(groveDir, plan);
   resetState(groveDir);
