@@ -260,6 +260,7 @@ export function useSimulation(): {
   sendCommand: (cmd: GroveCommand) => void;
   lastEvent: GroveEvent | null;
   events: GroveEvent[];
+  injectEvent: (event: GroveEvent) => void;
 } {
   const [events, setEvents] = useState<GroveEvent[]>([]);
   const [lastEvent, setLastEvent] = useState<GroveEvent | null>(null);
@@ -487,5 +488,9 @@ export function useSimulation(): {
     [plantSlot, pushEvent, scheduleTimer, scheduleToolEvents, checkNextSlotReady],
   );
 
-  return { connected, sendCommand, lastEvent, events };
+  const injectEvent = useCallback((event: GroveEvent) => {
+    pushEvent(event);
+  }, [pushEvent]);
+
+  return { connected, sendCommand, lastEvent, events, injectEvent };
 }

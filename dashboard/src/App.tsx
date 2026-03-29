@@ -5,6 +5,7 @@ import { usePlanState } from "./hooks/usePlanState.js";
 import { DashboardHeader } from "./components/DashboardHeader.js";
 import { Sidebar } from "./components/Sidebar.js";
 import { CardGrid } from "./components/CardGrid.js";
+import type { GroveEvent } from "./lib/types.js";
 
 function getWebSocketUrl(): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -22,6 +23,25 @@ export function App() {
     events,
     lastEvent,
   );
+
+  // Fallback: fetch plan via REST API if WebSocket hasn't delivered it
+  useEffect(() => {
+    if (isDemoMode || plan) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/plan");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data) {
+          const syntheticEvent: GroveEvent = { type: "plan_loaded", plan: data };
+          ws.injectEvent(syntheticEvent);
+        }
+      } catch {
+        // Ignore fetch errors
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [plan, isDemoMode, ws.injectEvent]);
 
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
   const [branchMode, setBranchMode] = useState(false);

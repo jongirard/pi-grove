@@ -6,6 +6,7 @@ export function useWebSocket(url: string): {
   sendCommand: (cmd: GroveCommand) => void;
   lastEvent: GroveEvent | null;
   events: GroveEvent[];
+  injectEvent: (event: GroveEvent) => void;
 } {
   const [connected, setConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<GroveEvent | null>(null);
@@ -66,5 +67,10 @@ export function useWebSocket(url: string): {
     }
   }, []);
 
-  return { connected, sendCommand, lastEvent, events };
+  const injectEvent = useCallback((event: GroveEvent) => {
+    setLastEvent(event);
+    setEvents((prev) => [...prev, event]);
+  }, []);
+
+  return { connected, sendCommand, lastEvent, events, injectEvent };
 }
