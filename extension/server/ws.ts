@@ -51,6 +51,26 @@ export class GroveBroadcaster {
       };
       ws.send(JSON.stringify(metricsEvent));
     }
+
+    // Send slot_ready for phases that are ready to be planted.
+    // A slot is ready if all work streams in all preceding slots are "done",
+    // and at least one of its own streams is not yet done.
+    if (plan) {
+      for (const slot of plan.timeSlots) {
+        const prevSlots = plan.timeSlots.filter((s) => s.slot < slot.slot);
+        const allPrevDone = prevSlots.every((prev) =>
+          prev.workStreamIds.every((id) => state[id]?.status === "done"),
+        );
+        const anyNotDone = slot.workStreamIds.some(
+          (id) => !state[id] || state[id].status !== "done",
+        );
+        if (allPrevDone && anyNotDone) {
+          const readyEvent: GroveEvent = { type: "slot_ready", slot: slot.slot };
+          ws.send(JSON.stringify(readyEvent));
+          break; // only the first ready slot
+        }
+      }
+    }
   }
 
   /**
