@@ -100,6 +100,33 @@ describe("GroveGitManager", () => {
       expect(mockGit.stageAll).not.toHaveBeenCalled();
     });
 
+    it("uses workstream cwd when set (absolute path)", async () => {
+      mockGit.isGitRepo.mockResolvedValue(true);
+      mockGit.hasUncommittedChanges.mockResolvedValue(true);
+      mockGit.stageAll.mockResolvedValue(undefined);
+      mockGit.commit.mockResolvedValue("def5678");
+
+      const ws = makeWorkStream({ cwd: "/other/repo" });
+      await manager.onWorkStreamDone(ws, "Test Plan");
+
+      expect(mockGit.isGitRepo).toHaveBeenCalledWith("/other/repo");
+      expect(mockGit.stageAll).toHaveBeenCalledWith("/other/repo");
+      expect(mockGit.commit).toHaveBeenCalledWith("/other/repo", expect.any(String));
+    });
+
+    it("resolves relative cwd against projectRoot", async () => {
+      mockGit.isGitRepo.mockResolvedValue(true);
+      mockGit.hasUncommittedChanges.mockResolvedValue(true);
+      mockGit.stageAll.mockResolvedValue(undefined);
+      mockGit.commit.mockResolvedValue("def5678");
+
+      const ws = makeWorkStream({ cwd: "../sibling-repo" });
+      await manager.onWorkStreamDone(ws, "Test Plan");
+
+      // /test/project + ../sibling-repo = /test/sibling-repo
+      expect(mockGit.isGitRepo).toHaveBeenCalledWith("/test/sibling-repo");
+    });
+
     it("returns null on git command error", async () => {
       mockGit.isGitRepo.mockResolvedValue(true);
       mockGit.hasUncommittedChanges.mockResolvedValue(true);

@@ -100,6 +100,29 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("mark_complete");
   });
 
+  it("includes working directory section when cwd differs from projectRoot", () => {
+    const ws = makeWorkStream({ cwd: "/other/repo" });
+    const prompt = buildAgentSystemPrompt(ws, undefined, "/main/project");
+
+    expect(prompt).toContain("Working Directory");
+    expect(prompt).toContain("/other/repo");
+    expect(prompt).toContain("/main/project");
+  });
+
+  it("omits working directory section when cwd matches projectRoot", () => {
+    const ws = makeWorkStream({ cwd: "/same/path" });
+    const prompt = buildAgentSystemPrompt(ws, undefined, "/same/path");
+
+    expect(prompt).not.toContain("Working Directory");
+  });
+
+  it("omits working directory section when cwd is not set", () => {
+    const ws = makeWorkStream();
+    const prompt = buildAgentSystemPrompt(ws, undefined, "/main/project");
+
+    expect(prompt).not.toContain("Working Directory");
+  });
+
   it("omits files section when filesToCreate is empty", () => {
     const ws = makeWorkStream({ filesToCreate: [] });
     const prompt = buildAgentSystemPrompt(ws);

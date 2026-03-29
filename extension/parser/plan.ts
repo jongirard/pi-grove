@@ -126,6 +126,12 @@ function validateWorkStream(
     if (typeof dep !== "string" || !validIds.has(dep)) return false;
   }
 
+  // cwd is optional; if present must be a non-empty string that looks like a path
+  if (w.cwd !== undefined) {
+    if (typeof w.cwd !== "string" || w.cwd.length === 0) return false;
+    if (!/^(\/|\.\.?\/)/.test(w.cwd)) return false;
+  }
+
   // status must be a valid WorkStreamStatus
   const validStatuses = new Set([
     "pending",

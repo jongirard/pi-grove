@@ -4,6 +4,7 @@ import {
   type AgentSession,
 } from "@mariozechner/pi-coding-agent";
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import type { WorkStream } from "../lib/types.js";
 import type { Orchestrator } from "./machine.js";
 import type { GroveBroadcaster } from "../server/ws.js";
@@ -25,7 +26,7 @@ interface RunningAgent {
  * work stream.  This gives the agent clear context about what it should
  * accomplish, which files it owns, and how to signal completion.
  */
-export function buildAgentSystemPrompt(workStream: WorkStream, context?: string): string {
+export function buildAgentSystemPrompt(workStream: WorkStream, context?: string, projectRoot?: string): string {
   const lines = [
     `You are an autonomous coding agent working on work stream "${workStream.name}" (id: ${workStream.id}).`,
     "",
@@ -33,6 +34,14 @@ export function buildAgentSystemPrompt(workStream: WorkStream, context?: string)
     workStream.brief,
     "",
   ];
+
+  if (workStream.cwd && projectRoot && workStream.cwd !== projectRoot) {
+    lines.push("## Working Directory");
+    lines.push(`You are working in: ${workStream.cwd}`);
+    lines.push(`This is different from the main project root (${projectRoot}).`);
+    lines.push("All file paths in this work stream are relative to the working directory above.");
+    lines.push("");
+  }
 
   if (context) {
     lines.push("## Project Context");
@@ -82,6 +91,12 @@ export class AgentSpawner {
     private sourceFile?: string,
   ) {}
 
+  private resolveWorkStreamCwd(workStream: WorkStream): string {
+    if (!workStream.cwd) return this.projectRoot;
+    if (path.isAbsolute(workStream.cwd)) return workStream.cwd;
+    return path.resolve(this.projectRoot, workStream.cwd);
+  }
+
   // ── Public API ─────────────────────────────────────────────────────
 
   /**
@@ -101,7 +116,8 @@ export class AgentSpawner {
 
     const context = this.sourceFile && existsSync(this.sourceFile)
       ? readFileSync(this.sourceFile, "utf-8") : undefined;
-    const systemPrompt = buildAgentSystemPrompt(workStream, context);
+    const effectiveCwd = this.resolveWorkStreamCwd(workStream);
+    const systemPrompt = buildAgentSystemPrompt(workStream, context, this.projectRoot);
 
     const markCompleteTool = createMarkCompleteTool(
       workStream.id,
@@ -114,7 +130,7 @@ export class AgentSpawner {
     );
 
     const { session } = await createAgentSession({
-      cwd: this.projectRoot,
+      cwd: effectiveCwd,
       tools: codingTools,
       customTools: [markCompleteTool],
     });

@@ -17,6 +17,7 @@ export interface WorkStream {
   filesToCreate: string[];
   doneWhen: string;
   model?: string;
+  cwd?: string;
   status: WorkStreamStatus;
 }
 

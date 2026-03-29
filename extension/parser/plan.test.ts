@@ -197,6 +197,46 @@ describe("validatePlan", () => {
     expect(validatePlan(circular)).toBe(false);
   });
 
+  it("accepts work stream with absolute cwd", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "/Users/me/other-repo";
+    expect(validatePlan(plan)).toBe(true);
+  });
+
+  it("accepts work stream with relative cwd", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "../other-repo";
+    expect(validatePlan(plan)).toBe(true);
+  });
+
+  it("accepts work stream with ./ relative cwd", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "./subdir";
+    expect(validatePlan(plan)).toBe(true);
+  });
+
+  it("rejects work stream with empty cwd", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "";
+    expect(validatePlan(plan)).toBe(false);
+  });
+
+  it("rejects work stream with bare path cwd", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "some-dir";
+    expect(validatePlan(plan)).toBe(false);
+  });
+
+  it("roundtrips a plan with cwd through write and read", () => {
+    const plan = structuredClone(expectedPlan);
+    plan.workStreams["ws-1a"].cwd = "/Users/me/other-repo";
+    const tmpDir = makeTempDir();
+    writePlan(tmpDir, plan);
+    const loaded = readPlan(tmpDir);
+    expect(loaded?.workStreams["ws-1a"].cwd).toBe("/Users/me/other-repo");
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
   it("rejects plan where no work stream has zero dependencies", () => {
     const noEntry: GrovePlan = {
       name: "NoEntry",

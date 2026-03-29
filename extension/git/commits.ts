@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { WorkStream } from "../lib/types.js";
 import * as git from "./git.js";
 
@@ -8,20 +9,24 @@ export class GroveGitManager {
 
   async onWorkStreamDone(workStream: WorkStream, planName?: string): Promise<string | null> {
     try {
-      const isRepo = await git.isGitRepo(this.projectRoot);
+      const targetDir = workStream.cwd
+        ? (path.isAbsolute(workStream.cwd) ? workStream.cwd : path.resolve(this.projectRoot, workStream.cwd))
+        : this.projectRoot;
+
+      const isRepo = await git.isGitRepo(targetDir);
       if (!isRepo) return null;
 
-      const hasChanges = await git.hasUncommittedChanges(this.projectRoot);
+      const hasChanges = await git.hasUncommittedChanges(targetDir);
       if (!hasChanges) return null;
 
-      await git.stageAll(this.projectRoot);
+      await git.stageAll(targetDir);
       const title = planName
         ? `${planName} — ${workStream.name}, Phase ${workStream.phase}`
         : `${workStream.name} — complete`;
       const message = workStream.brief
         ? `${title}\n\n${workStream.brief}`
         : title;
-      const hash = await git.commit(this.projectRoot, message);
+      const hash = await git.commit(targetDir, message);
       return hash;
     } catch {
       return null;

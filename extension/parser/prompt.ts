@@ -25,6 +25,7 @@ interface WorkStream {
   brief: string;           // 2-3 paragraph description: what to deliver, key implementation details, and relevant design decisions from the plan
   filesToCreate: string[]; // Relative file paths this work stream will create or modify
   doneWhen: string;        // Acceptance criteria — when is this work stream complete?
+  cwd?: string;            // Optional: absolute path to the working directory for this work stream. Only set if the plan references an external repository or directory.
   status: "pending";       // Always "pending" for freshly parsed plans
 }
 
@@ -79,6 +80,7 @@ interface TimeSlot {
 5. All statuses must be "pending".
 6. Set source to "llm-extracted".
 7. Output ONLY the raw JSON object. No markdown fences, no explanation, no preamble, no trailing text.
+8. If the plan references work in a separate repository or directory outside the main project, set \`cwd\` on that work stream to the absolute path of the external repository. If all work is in the current project, omit \`cwd\`.
 
 ## Plan Markdown
 
