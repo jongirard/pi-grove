@@ -12,6 +12,9 @@ export async function groveInit(
 ): Promise<void> {
   // 1. Determine plan file path from args or prompt user
   let planPath = args.trim();
+  // Support @file reference syntax and strip surrounding quotes
+  if (planPath.startsWith("@")) planPath = planPath.slice(1);
+  planPath = planPath.replace(/^["']|["']$/g, "");
   if (!planPath) {
     const input = await ctx.ui.input("Plan file path", "docs/plan.md");
     if (!input) {
