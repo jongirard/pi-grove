@@ -3,6 +3,7 @@ import { useWebSocket } from "./hooks/useWebSocket.js";
 import { usePlanState } from "./hooks/usePlanState.js";
 import { DashboardHeader } from "./components/DashboardHeader.js";
 import { Sidebar } from "./components/Sidebar.js";
+import { CardGrid } from "./components/CardGrid.js";
 
 function getWebSocketUrl(): string {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -46,30 +47,18 @@ export function App() {
           selectedWorkStream={selectedWorkStream}
         />
 
-        <main className="flex flex-1 items-center justify-center overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4">
           {!connected && (
             <div className="absolute right-4 top-14 rounded bg-red-900/60 px-3 py-1.5 text-xs text-red-300">
               Disconnected — reconnecting...
             </div>
           )}
 
-          {selectedWorkStream && workStreams[selectedWorkStream] ? (
-            <div className="text-center">
-              <p className="text-sm text-neutral-400">
-                {workStreams[selectedWorkStream].id}:{" "}
-                {workStreams[selectedWorkStream].name}
-              </p>
-              <p className="mt-1 text-xs text-neutral-600">
-                Detail view coming soon
-              </p>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-sm text-neutral-500">
-                Select a work stream to begin
-              </p>
-            </div>
-          )}
+          <CardGrid
+            workStreams={workStreams}
+            timeSlots={timeSlots}
+            events={events}
+          />
         </main>
       </div>
     </div>
