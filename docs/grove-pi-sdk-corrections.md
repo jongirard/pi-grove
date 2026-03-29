@@ -218,7 +218,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 
 const authStorage = AuthStorage.create();
-const modelRegistry = new ModelRegistry(authStorage);
+const modelRegistry = ModelRegistry.create(authStorage);
 
 const { session } = await createAgentSession({
   sessionManager: SessionManager.inMemory(),
