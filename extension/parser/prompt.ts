@@ -39,12 +39,12 @@ interface TimeSlot {
 
 \`\`\`json
 {
-  "name": "my-project",
+  "name": "My Project",
   "source": "llm-extracted",
   "workStreams": {
-    "ws-1a": {
-      "id": "ws-1a",
-      "name": "Setup foundation",
+    "1A": {
+      "id": "1A",
+      "name": "Setup Foundation",
       "phase": 1,
       "dependencies": [],
       "brief": "Create project scaffolding and shared types.",
@@ -52,11 +52,11 @@ interface TimeSlot {
       "doneWhen": "Types compile and are importable.",
       "status": "pending"
     },
-    "ws-2a": {
-      "id": "ws-2a",
-      "name": "Build core logic",
+    "2A": {
+      "id": "2A",
+      "name": "Build Core Logic",
       "phase": 2,
-      "dependencies": ["ws-1a"],
+      "dependencies": ["1A"],
       "brief": "Implement the main business logic.",
       "filesToCreate": ["src/core.ts"],
       "doneWhen": "Unit tests pass.",
@@ -64,21 +64,21 @@ interface TimeSlot {
     }
   },
   "timeSlots": [
-    { "slot": 1, "workStreamIds": ["ws-1a"], "maxParallelAgents": 1 },
-    { "slot": 2, "workStreamIds": ["ws-2a"], "maxParallelAgents": 1 }
+    { "slot": 1, "workStreamIds": ["1A"], "maxParallelAgents": 1 },
+    { "slot": 2, "workStreamIds": ["2A"], "maxParallelAgents": 1 }
   ]
 }
 \`\`\`
 
 ## Rules
 
-1. Every work stream must have a unique ID in the format "ws-<phase><letter>" (e.g. ws-1a, ws-2b).
+1. Use the work stream IDs as they appear in the plan (e.g. "1A", "2B", "3C"). If the plan uses labels like "Work Stream 2A" or "### 2A —", the ID is "2A". Preserve the exact casing and format from the plan.
 2. The key in the workStreams record must match the work stream's id field.
 3. Every work stream ID listed in a timeSlot must exist in the workStreams record.
-4. Dependencies must only reference IDs that exist in the workStreams record.
+4. Dependencies must only reference IDs that exist in the workStreams record. Parse "Dependencies: 2A, 2B" as ["2A", "2B"].
 5. All statuses must be "pending".
 6. Set source to "llm-extracted".
-7. Output ONLY the raw JSON object. No markdown fences, no explanation, no preamble.
+7. Output ONLY the raw JSON object. No markdown fences, no explanation, no preamble, no trailing text.
 
 ## Plan Markdown
 

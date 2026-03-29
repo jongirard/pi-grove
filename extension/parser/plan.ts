@@ -45,10 +45,17 @@ export async function parsePlan(
 function stripCodeFences(text: string): string {
   let trimmed = text.trim();
   // Match opening fence like ```json or ``` then content then closing ```
-  const fenceRe = /^```(?:json)?\s*\n?([\s\S]*?)\n?\s*```$/;
+  // Allow trailing whitespace/text after closing fence
+  const fenceRe = /^```(?:json)?\s*\n([\s\S]*?)\n\s*```\s*$/;
   const match = trimmed.match(fenceRe);
   if (match) {
-    trimmed = match[1].trim();
+    return match[1].trim();
+  }
+  // Also try to extract JSON object directly if no fences
+  const jsonStart = trimmed.indexOf("{");
+  const jsonEnd = trimmed.lastIndexOf("}");
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    return trimmed.slice(jsonStart, jsonEnd + 1);
   }
   return trimmed;
 }

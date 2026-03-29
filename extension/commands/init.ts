@@ -38,10 +38,20 @@ export async function groveInit(
     const response = await completeSimple(ctx.model, {
       messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
     });
-    const textContent = response.content.find(
-      (c: { type: string }) => c.type === "text",
-    ) as { type: "text"; text: string } | undefined;
-    return textContent ? textContent.text : "";
+    // Extract all text blocks from the response and concatenate
+    const texts: string[] = [];
+    for (const block of response.content) {
+      if ((block as { type: string }).type === "text") {
+        texts.push((block as { type: "text"; text: string }).text);
+      }
+    }
+    const result = texts.join("");
+    if (!result) {
+      throw new Error(
+        `LLM returned no text content. Stop reason: ${response.stopReason}${response.errorMessage ? `, error: ${response.errorMessage}` : ""}`,
+      );
+    }
+    return result;
   };
 
   // 5. Notify parsing
