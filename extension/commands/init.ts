@@ -35,8 +35,12 @@ export async function groveInit(
   // 4. Create llmCall wrapper using ctx.model + completeSimple
   const llmCall = async (prompt: string): Promise<string> => {
     if (!ctx.model) throw new Error("No model available");
+    // Resolve API key through Pi's model registry (handles OAuth/subscription auth)
+    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
     const response = await completeSimple(ctx.model, {
       messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
+    }, {
+      ...(auth.ok && auth.apiKey ? { apiKey: auth.apiKey } : {}),
     });
     // Extract all text blocks from the response and concatenate
     const texts: string[] = [];
