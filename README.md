@@ -2,6 +2,8 @@
 
 Plan-aware agent orchestration for Pi. Grove reads a structured markdown plan, parses it into work streams with dependencies, and orchestrates parallel AI agents to execute them — all monitored through a real-time web dashboard.
 
+![Grove Dashboard](grove-dashboard.png)
+
 ## Quick Start
 
 1. Install Grove as a Pi package:
