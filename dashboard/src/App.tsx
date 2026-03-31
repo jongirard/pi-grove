@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useWebSocket } from "./hooks/useWebSocket.js";
 import { useSimulation } from "./hooks/useSimulation.js";
 import { usePlanState } from "./hooks/usePlanState.js";
@@ -77,9 +77,17 @@ export function App() {
 
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
   const [branchMode, setBranchMode] = useState(false);
+  const hasUserSelected = useRef(false);
 
-  // Auto-select the first actionable phase when plan loads
+  // Wrap setSelectedPhase to track user-initiated selections
+  const handleSelectPhase = useCallback((phase: number | null) => {
+    hasUserSelected.current = true;
+    setSelectedPhase(phase);
+  }, []);
+
+  // Auto-select the first actionable phase on initial load only
   useEffect(() => {
+    if (hasUserSelected.current) return;
     if (timeSlots.length === 0 || selectedPhase !== null) return;
 
     // Find first phase that's ready or has running streams
@@ -121,7 +129,7 @@ export function App() {
           workStreams={workStreams}
           timeSlots={timeSlots}
           selectedPhase={selectedPhase}
-          onSelectPhase={setSelectedPhase}
+          onSelectPhase={handleSelectPhase}
         />
 
         <main className="flex-1 overflow-y-auto px-5 py-4">
@@ -142,7 +150,7 @@ export function App() {
             events={events}
             sendCommand={sendCommand}
             selectedPhase={selectedPhase}
-            onSelectPhase={setSelectedPhase}
+            onSelectPhase={handleSelectPhase}
           />
         </main>
       </div>
