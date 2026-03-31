@@ -15,7 +15,7 @@ Plan-aware agent orchestration for Pi. Grove reads a structured markdown plan, p
 
 3. Initialize Grove:
    ```
-   /grove init docs/my-plan.md
+   /grove init @docs/my-plan.md
    ```
 
 4. Start the orchestration:
